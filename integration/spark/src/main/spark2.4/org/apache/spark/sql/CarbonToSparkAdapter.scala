@@ -62,10 +62,12 @@ import org.apache.carbondata.core.util.path.CarbonTablePath
 import org.apache.carbondata.core.util.{CarbonProperties, ThreadLocalSessionInfo}
 import org.apache.carbondata.spark.CarbonOption
 import org.apache.carbondata.spark.util.CarbonScalaUtil
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.parser.ParserUtils.operationNotAllowed
 import org.apache.spark.sql.catalyst.parser.SqlBaseParser.{BucketSpecContext, ColTypeListContext, CreateTableHeaderContext, LocationSpecContext, PartitionFieldListContext, QueryContext, SkewSpecContext, TablePropertyListContext}
 import org.apache.spark.sql.execution.command.table.{CarbonCreateTableAsSelectCommand, CarbonCreateTableCommand}
 import org.apache.spark.sql.execution.strategy.CarbonDataSourceScan
+import org.apache.spark.sql.internal.SharedState
 import org.apache.spark.sql.parser.CarbonSpark2SqlParser
 import org.apache.spark.sql.parser.CarbonSparkSqlParserUtil.{checkIfDuplicateColumnExists, convertDbNameToLowerCase, validateStreamingProperty}
 
@@ -586,6 +588,14 @@ object CarbonToSparkAdapter {
 
   def supportsBatchOrColumnar(scan: CarbonDataSourceScan): Boolean = {
     scan.supportsBatch
+  }
+
+  def createDataset(qe: QueryExecution) : Dataset[Row] = {
+    new Dataset[Row](qe, RowEncoder(qe.analyzed.schema))
+  }
+
+  def createSharedState(sparkContext: SparkContext) : SharedState = {
+    new SharedState(sparkContext)
   }
 }
 

@@ -48,9 +48,11 @@ import org.apache.spark.sql.types.{DataType, Metadata, StructField}
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.carbondata.common.exceptions.sql.MalformedCarbonCommandException
 import org.apache.carbondata.core.util.ThreadLocalSessionInfo
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.parser.ParserUtils.operationNotAllowed
 import org.apache.spark.sql.catalyst.parser.SqlBaseParser.ColTypeListContext
 import org.apache.spark.sql.execution.strategy.CarbonDataSourceScan
+import org.apache.spark.sql.internal.SharedState
 import org.apache.spark.sql.parser.CarbonSpark2SqlParser
 
 import scala.collection.mutable
@@ -525,6 +527,14 @@ object CarbonToSparkAdapter {
 
   def supportsBatchOrColumnar(scan: CarbonDataSourceScan): Boolean = {
     scan.supportsBatch
+  }
+
+  def createDataset(qe: QueryExecution) : Dataset[Row] = {
+    new Dataset[Row](qe, RowEncoder(qe.analyzed.schema))
+  }
+
+  def createSharedState(sparkContext: SparkContext) : SharedState = {
+    new SharedState(sparkContext)
   }
 
 }

@@ -32,6 +32,7 @@ import org.apache.spark.sql.carbondata.execution.datasources.CarbonFileIndexRepl
 import org.apache.spark.sql.catalyst.{CarbonParserUtil, InternalRow, QueryPlanningTracker, TableIdentifier}
 import org.apache.spark.sql.catalyst.analysis.{Analyzer, UnresolvedRelation}
 import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, ExternalCatalogWithListener, SessionCatalog}
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeMap, AttributeReference, AttributeSeq, AttributeSet, Expression, ExpressionSet, ExprId, NamedExpression, ScalaUDF, SubqueryExpression}
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
@@ -51,12 +52,14 @@ import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.execution.metric.SQLShuffleWriteMetricsReporter
 import org.apache.spark.sql.execution.strategy.CarbonDataSourceScan
 import org.apache.spark.sql.hive.HiveExternalCatalog
+import org.apache.spark.sql.internal.SharedState
 import org.apache.spark.sql.optimizer.{CarbonIUDRule, CarbonUDFTransformRule, MVRewriteRule}
 import org.apache.spark.sql.parser.CarbonSpark2SqlParser
 import org.apache.spark.sql.parser.CarbonSparkSqlParserUtil.{checkIfDuplicateColumnExists, convertDbNameToLowerCase, validateStreamingProperty}
 import org.apache.spark.sql.secondaryindex.optimizer.CarbonSITransformationRule
 import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.types.{DataType, Metadata, StructField}
+import org.apache.spark.sql.util.SparkSQLUtil
 import org.apache.spark.unsafe.types.UTF8String
 
 import org.apache.carbondata.common.exceptions.DeprecatedFeatureException
@@ -271,8 +274,13 @@ object CarbonToSparkAdapter {
   }
 
   def getTableIdentifier(u: UnresolvedRelation): Some[TableIdentifier] = {
-    val tableName = u.tableName.split(".")
-    Some(TableIdentifier(tableName(1), Option(tableName(0))))
+    val tableName = u.tableName.split("\\.")
+    if (tableName.size == 2) {
+      Some(TableIdentifier(tableName(1), Option(tableName(0))))
+    } else {
+      val currentDatabase = SparkSQLUtil.getSparkSession.sessionState.catalog.getCurrentDatabase
+      Some(TableIdentifier(tableName(0), Option(currentDatabase)))
+    }
   }
 
   // TODO: check if this is correct
@@ -587,6 +595,14 @@ object CarbonToSparkAdapter {
 
   def supportsBatchOrColumnar(scan: CarbonDataSourceScan): Boolean = {
     scan.supportsColumnar
+  }
+
+  def createDataset(qe: QueryExecution) : Dataset[Row] = {
+    new Dataset[Row](qe, RowEncoder(qe.analyzed.schema))
+  }
+
+  def createSharedState(sparkContext: SparkContext) : SharedState = {
+    new SharedState(sparkContext, Map.empty[String, String])
   }
 }
 

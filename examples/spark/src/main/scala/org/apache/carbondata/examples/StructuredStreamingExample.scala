@@ -5,7 +5,7 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ *R
  *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -20,8 +20,8 @@ package org.apache.carbondata.examples
 import java.io.{File, PrintWriter}
 import java.net.ServerSocket
 
-import org.apache.spark.sql.{CarbonEnv, SparkSession}
-import org.apache.spark.sql.streaming.{ProcessingTime, StreamingQuery}
+import org.apache.spark.sql.{CarbonEnv, CarbonToSparkAdapter, SparkSession}
+import org.apache.spark.sql.streaming.StreamingQuery
 
 import org.apache.carbondata.core.metadata.schema.table.CarbonTable
 import org.apache.carbondata.core.util.path.CarbonTablePath
@@ -151,7 +151,7 @@ object StructuredStreamingExample {
           // Write data from socket stream to carbondata file
           qry = readSocketDF.writeStream
             .format("carbondata")
-            .trigger(ProcessingTime("5 seconds"))
+            .trigger(CarbonToSparkAdapter.getProcessingTime("5 seconds"))
             .option("checkpointLocation",
               CarbonTablePath.getStreamingCheckpointDir(carbonTable.getTablePath))
             .option("dbName", "default")
