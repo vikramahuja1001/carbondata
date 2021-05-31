@@ -22,7 +22,7 @@ import java.util.Locale
 import scala.collection.mutable
 
 import org.apache.log4j.Logger
-import org.apache.spark.sql.{CarbonCountStar, CarbonDatasourceHadoopRelation, CarbonToSparkAdapter, CountStarPlan, InsertIntoCarbonTable, SparkSession}
+import org.apache.spark.sql.{CarbonCountStar, CarbonDatasourceHadoopRelation, CarbonToSparkAdapter, CountStarPlan, InsertIntoCarbonTable, SparkSession, SparkVersionAdapter}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.UnresolvedAlias
 import org.apache.spark.sql.catalyst.expressions.{Alias, Ascending, AttributeReference, Cast, Descending, Expression, IntegerLiteral, Literal, NamedExpression, ScalaUDF, SortOrder}
@@ -123,7 +123,7 @@ object DMLStrategy extends SparkStrategy {
           val sparkSession = SparkSQLUtil.getSparkSession
           lazy val analyzer = sparkSession.sessionState.analyzer
           lazy val optimizer = sparkSession.sessionState.optimizer
-          val analyzedPlan = CarbonToSparkAdapter.invokeAnalyzerExecute(
+          val analyzedPlan = SparkVersionAdapter.invokeAnalyzerExecute(
             analyzer, rightSide)
           val polygonTablePlan = optimizer.execute(analyzedPlan)
           // transform join condition by replacing polygon column with ToRangeListAsString udf
@@ -190,7 +190,7 @@ object DMLStrategy extends SparkStrategy {
           leftKeys: Seq[Expression],
           rightKeys: Seq[Expression],
           Inner,
-          CarbonToSparkAdapter.getBuildRight,
+          SparkVersionAdapter.getBuildRight,
           carbonChild,
           planLater(right),
           condition)
@@ -205,7 +205,7 @@ object DMLStrategy extends SparkStrategy {
             leftKeys: Seq[Expression],
             rightKeys: Seq[Expression],
             Inner,
-            CarbonToSparkAdapter.getBuildLeft,
+            SparkVersionAdapter.getBuildLeft,
             planLater(left),
             carbon,
             condition)
@@ -219,7 +219,7 @@ object DMLStrategy extends SparkStrategy {
           leftKeys: Seq[Expression],
           rightKeys: Seq[Expression],
           LeftSemi,
-          CarbonToSparkAdapter.getBuildRight,
+          SparkVersionAdapter.getBuildRight,
           planLater(left),
           planLater(right),
           condition)
